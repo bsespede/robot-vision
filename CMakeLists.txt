@@ -8,6 +8,11 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIB_DIR})
 
+# Find Boost libraries
+find_package(Boost REQUIRED)
+link_directories(${Boost_INCLUDE_DIR})
+
+
 # Compile C++ project
 include_directories(include)
 add_executable(${PROJECT_NAME}
@@ -18,4 +23,4 @@ add_executable(${PROJECT_NAME}
 		"src/ass1/PointCloud.cpp" "include/ass1/PointCloud.h")
 
 # Link project with libraries
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${Boost_LIBRARIES})
