@@ -9,7 +9,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIB_DIR})
 
 # Find Boost libraries
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED filesystem)
 link_directories(${Boost_INCLUDE_DIR})
 
 

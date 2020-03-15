@@ -77,3 +77,6 @@ fabric.properties
 
 # Build folders
 cmake-build-*
+
+# Data folder
+data/
