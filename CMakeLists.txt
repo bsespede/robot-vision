@@ -12,7 +12,6 @@ link_directories(${OpenCV_LIB_DIR})
 find_package(Boost REQUIRED filesystem)
 link_directories(${Boost_INCLUDE_DIR})
 
-
 # Compile C++ project
 include_directories(include)
 add_executable(${PROJECT_NAME}
