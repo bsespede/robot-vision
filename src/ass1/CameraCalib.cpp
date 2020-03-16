@@ -2,40 +2,40 @@
 // Created by bsespede on 3/14/20.
 //
 
-#include <iostream>
 #include "ass1/CameraCalib.h"
 
-CameraCalib::CameraCalib(cv::Size patternSize, float squareSize) : patternSize(patternSize), squareSize(squareSize) {}
+CameraCalib::CameraCalib(const cv::Size patternSize, const float squareSize) : patternSize(patternSize), squareSize(squareSize) {}
 
-void CameraCalib::computeIntrinsics(std::string inputPath, bool printResults) {
-  printf("[DEBUG] Computing intrinsic camera parameters\n");
-  std::string outputPath = inputPath + "/output";
-  if (!boost::filesystem::is_directory(outputPath)) {
-    boost::filesystem::create_directories(outputPath);
-    if (printResults) {
-      boost::filesystem::create_directories(outputPath + "/corners");
-    }
-  }
-
-  cv::Size imageSize = getImageSize(inputPath);
-  std::vector<std::vector<cv::Point2f>> imagePoints = getImagePoints(inputPath, outputPath + "/corners", printResults);
-  std::vector<std::vector<cv::Point3f>> objectPoints = getObjectPoints(imagePoints.size());
+void CameraCalib::computeIntrinsics(const std::string inputPath, const bool printResults) {
+  printf("[DEBUG] Computing input and object points\n");
+  std::vector<ImagePoints> imagePoints;
+  std::vector<ObjectPoints> objectPoints;
+  computeImagePoints(inputPath, imagePoints);
+  computeObjectPoints(objectPoints, imagePoints);
+  cv::Size imageSize = getImagesSize(inputPath);
   cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
   cv::Mat distCoeffs = cv::Mat::zeros(8, 1, CV_64F);
   std::vector<cv::Mat> rvecs = std::vector<cv::Mat>(imagePoints.size());
   std::vector<cv::Mat> tvecs = std::vector<cv::Mat>(imagePoints.size());
 
   printf("[DEBUG] Computing camera calibration\n");
-  cv::calibrateCamera(objectPoints, imagePoints, imageSize, cameraMatrix, distCoeffs, rvecs, tvecs);
+  std::vector<std::vector<cv::Point2f>> imagePointsUnraveled;
+  std::vector<std::vector<cv::Point3f>> objectPointsUnraveled;
+  for (int imageNumber = 0; imageNumber < imagePoints.size(); imageNumber++) {
+    imagePointsUnraveled.push_back(imagePoints[imageNumber].points);
+    objectPointsUnraveled.push_back(objectPoints[imageNumber].points);
+  }
+  cv::calibrateCamera(objectPointsUnraveled, imagePointsUnraveled, imageSize, cameraMatrix, distCoeffs, rvecs, tvecs);
 
-  printf("[DEBUG] Computing RMSE\n");
-  double rmse = getRMSE(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvecs, tvecs);
+  printf("[DEBUG] Computing calibration error\n");
+  double rmse = computeError(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvecs, tvecs);
 
-  printf("[DEBUG] Storing results\n");
-  storeResults(outputPath, cameraMatrix, distCoeffs, rmse);
+  printf("[DEBUG] Saving results\n");
+  CameraCalib::Result result = {cameraMatrix, distCoeffs, rmse};
+  saveResults(inputPath, imagePoints, result, printResults);
 }
 
-cv::Size CameraCalib::getImageSize(std::string inputPath) {
+cv::Size CameraCalib::getImagesSize(std::string inputPath) {
   printf("[DEBUG] Computing image size\n");
   bool sizeHasBeenSet = false;
   cv::Size imageSize;
@@ -55,55 +55,35 @@ cv::Size CameraCalib::getImageSize(std::string inputPath) {
   return imageSize;
 }
 
-
-std::vector<std::vector<cv::Point2f>> CameraCalib::getImagePoints(std::string inputPath, std::string outputPath, bool printResults) {
+void CameraCalib::computeImagePoints(std::string inputPath, std::vector<ImagePoints>& imagePoints) {
   printf("[DEBUG] Computing image points\n");
   std::vector<std::string> imagesPath = getImagesPath(inputPath);
 
-  std::vector<std::vector<cv::Point2f>> allImagePoints;
   for (std::string imagePath : imagesPath) {
     cv::Mat image = cv::imread(imagePath, cv::IMREAD_COLOR);
-
-    std::vector<cv::Point2f> imagePoints;
-    bool foundCorners = cv::findChessboardCorners(image, patternSize, imagePoints);
+    std::vector<cv::Point2f> curImagePoints;
+    bool foundCorners = cv::findChessboardCorners(image, patternSize, curImagePoints);
     if (foundCorners) {
       cv::Mat imageGray;
       cvtColor(image, imageGray, cv::COLOR_BGR2GRAY);
-      // TODO: try changing these values and see the effect in the RMSE
-      cornerSubPix(imageGray, imagePoints, cv::Size(11, 11), cv::Size(-1, -1),
+      cornerSubPix(imageGray, curImagePoints, cv::Size(11, 11), cv::Size(-1, -1),
                    cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.0001));
-      allImagePoints.push_back(imagePoints);
-    }
-
-    if (printResults && foundCorners) {
-      std::string outputImageFilename = boost::filesystem::path(imagePath).stem().string() + "_output.png";
-      cv::drawChessboardCorners(image, patternSize, imagePoints, foundCorners);
-      if (boost::filesystem::is_directory(outputPath)) {
-        cv::imwrite(outputPath + "/" + outputImageFilename, image);
-      }
-      else {
-        throw std::runtime_error("Output folder doesn't exist");
-      }
+      imagePoints.push_back({curImagePoints, boost::filesystem::path(imagePath).stem().string()});
     }
   }
-
-  return allImagePoints;
 }
 
-std::vector<std::vector<cv::Point3f>> CameraCalib::getObjectPoints(int imagesNumber) {
+void CameraCalib::computeObjectPoints(std::vector<ObjectPoints>& objectPoints, std::vector<ImagePoints>& imagePoints) {
   printf("[DEBUG] Computing object points\n");
-  std::vector<std::vector<cv::Point3f>> allObjectPoints;
-
-  for (int imageNumber = 0; imageNumber < imagesNumber; imageNumber++) {
-    std::vector<cv::Point3f> objectPoints;
+  for (int imageNumber = 0; imageNumber < imagePoints.size(); imageNumber++) {
+    std::vector<cv::Point3f> curObjectPoints;
     for (int i = 0; i < patternSize.height; ++i) {
       for (int j = 0; j < patternSize.width; ++j) {
-        objectPoints.push_back(cv::Point3f(j * squareSize, i * squareSize, 0));
+        curObjectPoints.push_back(cv::Point3f(j * squareSize, i * squareSize, 0));
       }
     }
-    allObjectPoints.push_back(objectPoints);
+    objectPoints.push_back({curObjectPoints});
   }
-  return allObjectPoints;
 }
 
 std::vector<std::string> CameraCalib::getImagesPath(std::string inputPath) {
@@ -118,42 +98,66 @@ std::vector<std::string> CameraCalib::getImagesPath(std::string inputPath) {
   else {
     throw std::runtime_error("Input folder doesn't exist");
   }
-
   if (imagesPath.empty()) {
-    throw new std::runtime_error("No images found in folder");
+    throw std::runtime_error("No images found in folder");
   }
   return imagesPath;
 }
 
-double CameraCalib::getRMSE(std::vector<std::vector<cv::Point3f>> objectPoints, std::vector<std::vector<cv::Point2f>> imagePoints,
-              cv::Mat cameraMatrix, cv::Mat distCoeffs, std::vector<cv::Mat> rvecs, std::vector<cv::Mat> tvecs) {
+float CameraCalib::computeError(std::vector<ObjectPoints>& objectPoints, std::vector<ImagePoints>& imagePoints,
+    cv::Mat& cameraMatrix, cv::Mat& distCoeffs, std::vector<cv::Mat>& rvecs, std::vector<cv::Mat>& tvecs) {
   std::vector<cv::Point2f> imagePointsReprojected;
   int totalPoints = 0;
-  double totalError = 0.0f;
-
+  float totalError = 0.0f;
   for(int imageNumber = 0; imageNumber < objectPoints.size(); imageNumber++) {
-    cv::projectPoints(objectPoints[imageNumber], rvecs[imageNumber], tvecs[imageNumber], cameraMatrix, distCoeffs, imagePointsReprojected);
-    double curError = norm(imagePoints[imageNumber], imagePointsReprojected, cv::NORM_L2);
+    cv::projectPoints(objectPoints[imageNumber].points, rvecs[imageNumber], tvecs[imageNumber], cameraMatrix, distCoeffs, imagePointsReprojected);
+    float curError = cv::norm(imagePoints[imageNumber].points, imagePointsReprojected, cv::NORM_L2);
     totalError += curError * curError;
-    totalPoints += objectPoints[imageNumber].size();;
+    totalPoints += objectPoints[imageNumber].points.size();
   }
-
   return std::sqrt(totalError / totalPoints);
 }
 
-void CameraCalib::storeResults(std::string outputPath, cv::Mat cameraMatrix, cv::Mat distCoeffs, double rmse) {
-  boost::property_tree::ptree root;
-  root.put("calibration.rmse", rmse);
+void CameraCalib::saveResults(std::string inputPath, std::vector<ImagePoints>& imagePoints, CameraCalib::Result& result, bool printResults) {
+  std::string outputPath = inputPath + "/output";
+  std::string cornersFolderPath = outputPath + "/corners";
+  std::string undistortedFolderPath = outputPath + "/undistorted";
+  if (!boost::filesystem::is_directory(outputPath)) {
+    boost::filesystem::create_directories(outputPath);
+    boost::filesystem::create_directories(cornersFolderPath);
+    boost::filesystem::create_directories(undistortedFolderPath);
+  }
 
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      root.put("calibration.camera_matrix." + std::to_string(i) + std::to_string(j), cameraMatrix.at<double>(i, j));
+  boost::property_tree::ptree imagePointsJson;
+  for (ImagePoints imagePoint : imagePoints) {
+    imagePointsJson.put("imagePoints." + imagePoint.filename + ".number", (int)imagePoint.points.size());
+    for (int pointNumber = 0; pointNumber < imagePoint.points.size(); pointNumber++) {
+      imagePointsJson.put("imagePoints." + imagePoint.filename + ".points." + std::to_string(pointNumber) + ".x", imagePoint.points[pointNumber].x);
+      imagePointsJson.put("imagePoints." + imagePoint.filename + ".points." + std::to_string(pointNumber) + ".y", imagePoint.points[pointNumber].y);
+    }
+
+    if (printResults) {
+      std::string filename = imagePoint.filename + ".png";
+      cv::Mat patternImage = cv::imread(inputPath + "/" + filename, cv::IMREAD_COLOR);
+      cv::Mat patternCorners = patternImage.clone();
+      cv::Mat patternUndistorted = patternImage.clone();
+      cv::drawChessboardCorners(patternCorners, patternSize, imagePoint.points, true);
+      cv::undistort(patternImage, patternUndistorted, result.cameraMatrix, result.distCoeffs);
+      cv::imwrite(cornersFolderPath + "/" + filename, patternCorners);
+      cv::imwrite(undistortedFolderPath + "/" + filename, patternUndistorted);
     }
   }
+  boost::property_tree::write_json(outputPath + "/imagePoints.json", imagePointsJson);
 
-  for (int i = 0; i < 8; i++) {
-    root.put("calibration.distortion_coeff." + std::to_string(i), distCoeffs.at<double>(i, 0));
+  boost::property_tree::ptree calibJson;
+  calibJson.put("calibration.rmse", result.rmse);
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      calibJson.put("calibration.camera_matrix." + std::to_string(i) + std::to_string(j), result.cameraMatrix.at<double>(i, j));
+    }
   }
-
-  boost::property_tree::write_json(outputPath + "/results.json", root);
+  for (int i = 0; i < 8; i++) {
+    calibJson.put("calibration.distortion_coeff." + std::to_string(i), result.distCoeffs.at<double>(i, 0));
+  }
+  boost::property_tree::write_json(outputPath + "/calibration.json", calibJson);
 }

@@ -16,17 +16,32 @@
 #include <exception>
 
 class CameraCalib {
+  struct Result {
+    cv::Mat cameraMatrix;
+    cv::Mat distCoeffs;
+    double rmse;
+  };
+
+  struct ImagePoints {
+    std::vector<cv::Point2f> points;
+    std::string filename;
+  };
+
+  struct ObjectPoints {
+    std::vector<cv::Point3f> points;
+  };
+
  public:
   CameraCalib(cv::Size patternSize, float squareSize);
   void computeIntrinsics(std::string inputPath, bool printResults = false);
  private:
-  cv::Size getImageSize(std::string inputPath);
-  std::vector<std::vector<cv::Point2f>> getImagePoints(std::string inputPath, std::string outputPath, bool printResults);
-  std::vector<std::vector<cv::Point3f>> getObjectPoints(int imagesNumber);
+  void computeImagePoints(std::string inputPath, std::vector<ImagePoints>& imagePoints);
+  void computeObjectPoints(std::vector<ObjectPoints>& objectPoints, std::vector<ImagePoints>& imagePoints);
+  float computeError(std::vector<ObjectPoints>& objectPoints, std::vector<ImagePoints>& imagePoints, cv::Mat& cameraMatrix, cv::Mat& distCoeffs, std::vector<cv::Mat>& rvecs, std::vector<cv::Mat>& tvecs);
+
   std::vector<std::string> getImagesPath(std::string imagesPath);
-  double getRMSE(std::vector<std::vector<cv::Point3f>> objectPoints, std::vector<std::vector<cv::Point2f>> imagePoints,
-      cv::Mat cameraMatrix, cv::Mat distCoeffs, std::vector<cv::Mat> rvecs, std::vector<cv::Mat> tvecs);
-  void storeResults(std::string outputPath, cv::Mat cameraMatrix, cv::Mat distCoeffs, double rmse);
+  cv::Size getImagesSize(std::string inputPath);
+  void saveResults(std::string outputPath, std::vector<ImagePoints>& imagePoints, CameraCalib::Result& result, bool printResults);
 
   cv::Size patternSize;
   float squareSize;
