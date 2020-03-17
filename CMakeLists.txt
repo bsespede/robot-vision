@@ -16,8 +16,9 @@ link_directories(${Boost_INCLUDE_DIR})
 include_directories(include)
 add_executable(${PROJECT_NAME}
 		"src/Main.cpp"
-		"src/ass1/StereoCalib.cpp" "include/ass1/StereoCalib.h"
+		"src/ass1/ImageUtils.cpp" "include/ass1/ImageUtils.h"
 		"src/ass1/CameraCalib.cpp" "include/ass1/CameraCalib.h"
+		"src/ass1/StereoCalib.cpp" "include/ass1/StereoCalib.h"
 		"src/ass1/StereoMatch.cpp" "include/ass1/StereoMatch.h"
 		"src/ass1/PointCloud.cpp" "include/ass1/PointCloud.h")
 
