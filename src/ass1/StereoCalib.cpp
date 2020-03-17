@@ -125,13 +125,13 @@ void StereoCalib::computeResultImages(std::string inputPath) {
                     leftRectification, rightRectification, leftProjection, rightProjection, disparityToDepth);
 
   cv::initUndistortRectifyMap(_leftCalibration.getIntrinsics().cameraMatrix, _leftCalibration.getIntrinsics().distCoeffs,
-                              leftRectification, leftProjection, imageSize, CV_32SC1, leftMapX, leftMapY);
+                              leftRectification, leftProjection, imageSize, CV_32FC1, leftMapX, leftMapY);
   cv::initUndistortRectifyMap(_rightCalibration.getIntrinsics().cameraMatrix, _rightCalibration.getIntrinsics().distCoeffs,
-                              rightRectification, rightProjection, imageSize, CV_32SC1, rightMapX, rightMapY);
+                              rightRectification, rightProjection, imageSize, CV_32FC1, rightMapX, rightMapY);
 
   for (CameraCalib::ImagePoints leftImagePoints : _leftCalibration.getImagePoints()) {
     std::string filename = leftImagePoints.filename + ".png";
-    cv::Mat patternImage = cv::imread(inputPath + "/left" + filename, cv::IMREAD_COLOR);
+    cv::Mat patternImage = cv::imread(inputPath + "/left/" + filename, cv::IMREAD_COLOR);
     cv::Mat patternUndistorted = patternImage.clone();
     cv::remap(patternImage, patternUndistorted, leftMapX, leftMapY, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
     cv::imwrite(rectifiedFolderPathLeft + "/" + filename, patternUndistorted);

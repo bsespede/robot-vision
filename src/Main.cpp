@@ -3,12 +3,12 @@
 //
 
 #include <string>
-#include <ass1/CameraCalib.h>
+#include <ass1/StereoCalib.h>
 
 int main(int argc, char *argv[])
 {
-  CameraCalib calibration(cv::Size(8, 5), 30);
-  calibration.computeIntrinsics("../data/CALIB_DATA/left", true);
+  StereoCalib calibration(cv::Size(8, 5), 30);
+  calibration.computeExtrinsics("../data/CALIB_DATA", true);
 
   return 0;
 }

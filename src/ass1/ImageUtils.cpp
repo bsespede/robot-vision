@@ -5,7 +5,6 @@
 #include "ass1/ImageUtils.h"
 
 cv::Size ImageUtils::getImagesSize(std::string inputPath) {
-  printf("[DEBUG] Computing image size\n");
   bool sizeHasBeenSet = false;
   cv::Size imageSize;
   std::vector<std::string> imagesPath = getImagesPath(inputPath);
