@@ -28,15 +28,13 @@ class CameraCalib {
   };
 
   CameraCalib(cv::Size patternSize, float squareSize);
-  void computeIntrinsics(std::string inputPath, bool saveResults = false);
+  void computeIntrinsics(std::string inputPath);
   Intrinsics getIntrinsics();
   std::vector<ImagePoints> getImagePoints();
   std::vector<ObjectPoints> getObjectPoints();
 
  private:
   void computeCornerPoints(std::string inputPath);
-  void computeResultImages(std::string inputPath);
-
   cv::Size _patternSize;
   float _squareSize;
   bool _hasComputedIntrinsics;

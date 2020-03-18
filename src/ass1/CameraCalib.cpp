@@ -7,7 +7,7 @@
 CameraCalib::CameraCalib(cv::Size patternSize, float squareSize) : _patternSize(patternSize), _squareSize(squareSize),
 _hasComputedIntrinsics(false) {}
 
-void CameraCalib::computeIntrinsics(std::string inputPath, bool saveResults) {
+void CameraCalib::computeIntrinsics(std::string inputPath) {
   if (!boost::filesystem::is_directory(inputPath)) {
     throw std::runtime_error("Input folder does not exist");
   }
@@ -33,11 +33,6 @@ void CameraCalib::computeIntrinsics(std::string inputPath, bool saveResults) {
 
   _intrinsics = {cameraMatrix, distCoeffs, rmse};
   _hasComputedIntrinsics = true;
-
-  if (saveResults) {
-    printf("[DEBUG] Saving results\n");
-    computeResultImages(inputPath);
-  }
 }
 
 std::vector<CameraCalib::ImagePoints> CameraCalib::getImagePoints() {
@@ -86,35 +81,5 @@ void CameraCalib::computeCornerPoints(std::string inputPath) {
       _imagePoints.push_back({curImagePoints, boost::filesystem::path(imagePath).stem().string()});
       _objectPoints.push_back({curObjectPoints});
     }
-  }
-}
-
-void CameraCalib::computeResultImages(std::string inputPath) {
-  if (!_hasComputedIntrinsics) {
-    throw std::runtime_error("Intrinsics have not been computed yet");
-  }
-
-  std::string outputPath = inputPath + "/output";
-  std::string cornersFolderPath = outputPath + "/corners";
-  std::string undistortedFolderPath = outputPath + "/undistorted";
-  if (!boost::filesystem::is_directory(outputPath)) {
-    boost::filesystem::create_directories(outputPath);
-  }
-  if (!boost::filesystem::is_directory(cornersFolderPath)) {
-    boost::filesystem::create_directories(cornersFolderPath);
-  }
-  if (!boost::filesystem::is_directory(undistortedFolderPath)) {
-    boost::filesystem::create_directories(undistortedFolderPath);
-  }
-
-  for (const ImagePoints& imagePoints : _imagePoints) {
-    std::string filename = imagePoints.filename + ".png";
-    cv::Mat patternImage = cv::imread(inputPath + "/" + filename, cv::IMREAD_COLOR);
-    cv::Mat patternCorners = patternImage.clone();
-    cv::Mat patternUndistorted = patternImage.clone();
-    cv::drawChessboardCorners(patternCorners, _patternSize, imagePoints.points, true);
-    cv::undistort(patternImage, patternUndistorted, _intrinsics.cameraMatrix, _intrinsics.distCoeffs);
-    cv::imwrite(cornersFolderPath + "/" + filename, patternCorners);
-    cv::imwrite(undistortedFolderPath + "/" + filename, patternUndistorted);
   }
 }

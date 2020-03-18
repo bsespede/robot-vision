@@ -16,13 +16,12 @@ class StereoCalib {
 
  public:
   StereoCalib(cv::Size patternSize, float squareSize);
-  void computeExtrinsics(std::string inputPath, bool saveResults = false);
+  void computeExtrinsics(std::string inputPath);
   CameraCalib::Intrinsics getLeftIntrinsics();
   CameraCalib::Intrinsics getRightIntrinsics();
   Extrinsics getExtrinsics();
- private:
-  void computeResultImages(std::string inputPath);
 
+ private:
   cv::Size _patternSize;
   float _squareSize;
   bool _hasComputedExtrinsics;
