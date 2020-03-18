@@ -91,7 +91,7 @@ void StereoCalib::computeResultImages(std::string inputPath) {
   }
 
   std::string outputPathLeft = inputPath + "/left/output";
-  std::string outputPathRight = inputPath + "/left/output";
+  std::string outputPathRight = inputPath + "/right/output";
   std::string rectifiedFolderPathLeft = outputPathLeft + "/rectified";
   std::string rectifiedFolderPathRight = outputPathRight + "/rectified";
 
