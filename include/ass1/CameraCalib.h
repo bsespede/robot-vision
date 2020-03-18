@@ -17,6 +17,7 @@ class CameraCalib {
   struct Intrinsics {
     cv::Mat cameraMatrix;
     cv::Mat distCoeffs;
+    cv::Size imageSize;
     float rmse;
   };
   struct ImagePoints {
@@ -28,7 +29,7 @@ class CameraCalib {
   };
 
   CameraCalib(cv::Size patternSize, float squareSize);
-  void computeIntrinsics(std::string inputPath);
+  void computeCalibration(std::string inputPath);
   Intrinsics getIntrinsics();
   std::vector<ImagePoints> getImagePoints();
   std::vector<ObjectPoints> getObjectPoints();

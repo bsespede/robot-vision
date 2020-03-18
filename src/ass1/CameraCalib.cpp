@@ -7,7 +7,7 @@
 CameraCalib::CameraCalib(cv::Size patternSize, float squareSize) : _patternSize(patternSize), _squareSize(squareSize),
 _hasComputedIntrinsics(false) {}
 
-void CameraCalib::computeIntrinsics(std::string inputPath) {
+void CameraCalib::computeCalibration(std::string inputPath) {
   if (!boost::filesystem::is_directory(inputPath)) {
     throw std::runtime_error("Input folder does not exist");
   }
@@ -31,29 +31,8 @@ void CameraCalib::computeIntrinsics(std::string inputPath) {
   float rmse = cv::calibrateCamera(objectPointsUnraveled, imagePointsUnraveled, imageSize, cameraMatrix, distCoeffs,
       rvecs, tvecs);
 
-  _intrinsics = {cameraMatrix, distCoeffs, rmse};
+  _intrinsics = {cameraMatrix, distCoeffs, imageSize, rmse};
   _hasComputedIntrinsics = true;
-}
-
-std::vector<CameraCalib::ImagePoints> CameraCalib::getImagePoints() {
-  if (!_hasComputedIntrinsics) {
-    throw std::runtime_error("Calibration has not been computed yet");
-  }
-  return _imagePoints;
-}
-
-std::vector<CameraCalib::ObjectPoints> CameraCalib::getObjectPoints() {
-  if (!_hasComputedIntrinsics) {
-    throw std::runtime_error("Calibration has not been computed yet");
-  }
-  return _objectPoints;
-}
-
-CameraCalib::Intrinsics CameraCalib::getIntrinsics() {
-  if (!_hasComputedIntrinsics) {
-    throw std::runtime_error("Calibration has not been computed yet");
-  }
-  return _intrinsics;
 }
 
 void CameraCalib::computeCornerPoints(std::string inputPath) {
@@ -82,4 +61,26 @@ void CameraCalib::computeCornerPoints(std::string inputPath) {
       _objectPoints.push_back({curObjectPoints});
     }
   }
+}
+
+
+std::vector<CameraCalib::ImagePoints> CameraCalib::getImagePoints() {
+  if (!_hasComputedIntrinsics) {
+    throw std::runtime_error("Calibration has not been computed yet");
+  }
+  return _imagePoints;
+}
+
+std::vector<CameraCalib::ObjectPoints> CameraCalib::getObjectPoints() {
+  if (!_hasComputedIntrinsics) {
+    throw std::runtime_error("Calibration has not been computed yet");
+  }
+  return _objectPoints;
+}
+
+CameraCalib::Intrinsics CameraCalib::getIntrinsics() {
+  if (!_hasComputedIntrinsics) {
+    throw std::runtime_error("Calibration has not been computed yet");
+  }
+  return _intrinsics;
 }

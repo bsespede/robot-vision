@@ -5,9 +5,9 @@
 #include "ass1/StereoCalib.h"
 
 StereoCalib::StereoCalib(cv::Size patternSize, float squareSize) : _patternSize(patternSize), _squareSize(squareSize),
-_leftCalibration(patternSize, squareSize), _rightCalibration(patternSize, squareSize), _hasComputedExtrinsics(false) {}
+_leftCalibration(patternSize, squareSize), _rightCalibration(patternSize, squareSize), _hasCalibrated(false) {}
 
-void StereoCalib::computeExtrinsics(std::string inputPath) {
+void StereoCalib::computeCalibration(std::string inputPath) {
   if (!boost::filesystem::is_directory(inputPath)) {
     throw std::runtime_error("Input folder does not exist");
   }
@@ -20,14 +20,14 @@ void StereoCalib::computeExtrinsics(std::string inputPath) {
 
   printf("[DEBUG] Checking for valid pairs\n");
   if (ImageUtils::getImagesSize(leftImagesPath) != ImageUtils::getImagesSize(rightImagesPath)) {
-    throw std::runtime_error("Images should have the same size");
+    throw std::runtime_error("Image pairs should have the same size");
   }
 
   printf("[DEBUG] Computing intrinsics for left camera\n");
-  _leftCalibration.computeIntrinsics(inputPath + "/left");
+  _leftCalibration.computeCalibration(inputPath + "/left");
 
   printf("[DEBUG] Computing intrinsics for right camera\n");
-  _rightCalibration.computeIntrinsics(inputPath + "/right");
+  _rightCalibration.computeCalibration(inputPath + "/right");
 
   std::vector<std::vector<cv::Point2f>> leftImagePointsUnraveled;
   std::vector<std::vector<cv::Point2f>> rightImagePointsUnraveled;
@@ -57,25 +57,29 @@ void StereoCalib::computeExtrinsics(std::string inputPath) {
   rightIntrinsics, rightDistortions, imageSize, rotationMatrix, translationMatrix, essentialMatrix, fundamentalMatrix);
 
   _extrinsics = {rotationMatrix, translationMatrix, rmse};
-  _hasComputedExtrinsics = true;
+  _hasCalibrated = true;
 }
 
 CameraCalib::Intrinsics StereoCalib::getLeftIntrinsics() {
-  if (!_hasComputedExtrinsics) {
+  if (!_hasCalibrated) {
     throw std::runtime_error("Stereo calibration has not been computed yet");
   }
   return _leftCalibration.getIntrinsics();
 }
 CameraCalib::Intrinsics StereoCalib::getRightIntrinsics() {
-  if (!_hasComputedExtrinsics) {
+  if (!_hasCalibrated) {
     throw std::runtime_error("Stereo calibration has not been computed yet");
   }
   return _rightCalibration.getIntrinsics();
 }
 
 StereoCalib::Extrinsics StereoCalib::getExtrinsics() {
-  if (!_hasComputedExtrinsics) {
+  if (!_hasCalibrated) {
     throw std::runtime_error("Stereo calibration has not been computed yet");
   }
   return _extrinsics;
+}
+
+bool StereoCalib::hasCalibrated() {
+  return _hasCalibrated;
 }

@@ -4,11 +4,17 @@
 
 #include <string>
 #include <ass1/StereoCalib.h>
+#include <ass1/StereoMatch.h>
 
 int main(int argc, char *argv[])
 {
+  std::string calibImagesPath = "../data/CALIB_DATA";
   StereoCalib calibration(cv::Size(8, 5), 30);
-  calibration.computeExtrinsics("../data/CALIB_DATA", true);
+  calibration.computeCalibration(calibImagesPath);
+
+  std::string sceneImagesPath = "../data/STEREO_DATA/stereo_data";
+  StereoMatch stereoMatcher(calibration);
+  stereoMatcher.computePointCloud(sceneImagesPath);
 
   return 0;
 }

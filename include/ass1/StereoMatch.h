@@ -9,12 +9,13 @@
 
 class StereoMatch {
  public:
-  void computeCalibration(std::string inputPath, cv::Size patternSize, float squareSize);
-  void computeRectifiedImages(std::string inputPath, std::string outputPath);
-  void computeDisparityMaps(std::string inputPath, std::string outputPath);
-  void computePointCloud(std::string inputPath, std::string outputPath);
+  StereoMatch(StereoCalib calibration);
+  void computePointCloud(std::string inputPath);
+
  private:
-  bool _hasCalibratedCameras;
+  void computeRectifiedImages(std::string inputPath);
+  void computeDisparityMaps(std::string inputPath);
+
   StereoCalib _calibration;
 };
 

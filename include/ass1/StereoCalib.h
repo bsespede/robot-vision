@@ -8,23 +8,24 @@
 #include "ass1/CameraCalib.h"
 
 class StereoCalib {
+ public:
   struct Extrinsics {
     cv::Mat rotationMatrix;
     cv::Mat transVector;
     float rmse;
   };
 
- public:
   StereoCalib(cv::Size patternSize, float squareSize);
-  void computeExtrinsics(std::string inputPath);
+  void computeCalibration(std::string inputPath);
   CameraCalib::Intrinsics getLeftIntrinsics();
   CameraCalib::Intrinsics getRightIntrinsics();
   Extrinsics getExtrinsics();
+  bool hasCalibrated();
 
  private:
   cv::Size _patternSize;
   float _squareSize;
-  bool _hasComputedExtrinsics;
+  bool _hasCalibrated;
 
   CameraCalib _leftCalibration;
   CameraCalib _rightCalibration;
