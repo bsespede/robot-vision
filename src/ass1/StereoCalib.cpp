@@ -36,8 +36,8 @@ void StereoCalib::computeCalibration() {
   }
 
   printf("[DEBUG] Computing extrinsics between cameras\n");
-  cv::Mat leftIntrinsics = _leftCalibration.getIntrinsics().cameraMatrix;
-  cv::Mat rightIntrinsics = _rightCalibration.getIntrinsics().cameraMatrix;
+  cv::Mat leftCameraMatrix = _leftCalibration.getIntrinsics().cameraMatrix;
+  cv::Mat rightCameraMatrix = _rightCalibration.getIntrinsics().cameraMatrix;
   cv::Mat leftDistortions = _leftCalibration.getIntrinsics().distCoeffs;
   cv::Mat rightDistortions = _rightCalibration.getIntrinsics().distCoeffs;
   cv::Size imageSize = _leftCalibration.getIntrinsics().imageSize;
@@ -45,9 +45,14 @@ void StereoCalib::computeCalibration() {
   cv::Mat translationMatrix;
   cv::Mat essentialMatrix;
   cv::Mat fundamentalMatrix;
-  float rmse = cv::stereoCalibrate(objectPointsUnraveled, leftImagePointsUnraveled, rightImagePointsUnraveled, leftIntrinsics, leftDistortions,
-  rightIntrinsics, rightDistortions, imageSize, rotationMatrix, translationMatrix, essentialMatrix, fundamentalMatrix);
+  int stereoFlags = cv::CALIB_FIX_ASPECT_RATIO + cv::CALIB_ZERO_TANGENT_DIST + cv::CALIB_USE_INTRINSIC_GUESS +
+      cv::CALIB_SAME_FOCAL_LENGTH + cv::CALIB_RATIONAL_MODEL + cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5;
+  float rmse = cv::stereoCalibrate(objectPointsUnraveled, leftImagePointsUnraveled, rightImagePointsUnraveled,
+      leftCameraMatrix, leftDistortions, rightCameraMatrix, rightDistortions, imageSize, rotationMatrix,
+      translationMatrix, essentialMatrix, fundamentalMatrix, stereoFlags);
 
+  _leftCalibration.setIntrinsics({leftCameraMatrix, leftDistortions, imageSize, _leftCalibration.getIntrinsics().rmse});
+  _rightCalibration.setIntrinsics({rightCameraMatrix, rightDistortions, imageSize, _rightCalibration.getIntrinsics().rmse});
   _extrinsics = {rotationMatrix, translationMatrix, rmse};
   _hasCalibrated = true;
 }
@@ -58,6 +63,7 @@ CameraCalib::Intrinsics StereoCalib::getLeftIntrinsics() {
   }
   return _leftCalibration.getIntrinsics();
 }
+
 CameraCalib::Intrinsics StereoCalib::getRightIntrinsics() {
   if (!_hasCalibrated) {
     throw std::runtime_error("Stereo calibration has not been computed yet");

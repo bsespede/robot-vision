@@ -31,6 +31,7 @@ class CameraCalib {
   CameraCalib(std::string inputPath, cv::Size patternSize, float squareSize);
   void computeCalibration();
   Intrinsics getIntrinsics();
+  void setIntrinsics(Intrinsics intrinsics);
   std::vector<ImagePoints> getImagePoints();
   std::vector<ObjectPoints> getObjectPoints();
   void printCalibration();

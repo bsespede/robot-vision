@@ -31,8 +31,6 @@ void StereoMatch::computeRectification() {
   cv::Size imageSize = _calibration.getLeftIntrinsics().imageSize;
 
   printf("[DEBUG] Computing projection matrices\n");
-  std::cout << "ex-i: " << extrinsics.rotationMatrix << std::endl;
-  std::cout << "ex-d: " << extrinsics.transVector << std::endl;
   cv::stereoRectify(leftIntrinsics.cameraMatrix, leftIntrinsics.distCoeffs,
                     rightIntrinsics.cameraMatrix, rightIntrinsics.distCoeffs,
                     imageSize, extrinsics.rotationMatrix, extrinsics.transVector,
@@ -45,16 +43,17 @@ void StereoMatch::computeRectification() {
   cv::Mat rightMapX;
   cv::Mat rightMapY;
   cv::initUndistortRectifyMap(leftIntrinsics.cameraMatrix, leftIntrinsics.distCoeffs,
-                              leftRectification, leftProjection, imageSize, CV_32FC1, leftMapX, leftMapY);
+                              leftRectification, leftProjection, imageSize, CV_16SC2, leftMapX, leftMapY);
   cv::initUndistortRectifyMap(rightIntrinsics.cameraMatrix, rightIntrinsics.distCoeffs,
-                              rightRectification, rightProjection, imageSize, CV_32FC1, rightMapX, rightMapY);
+                              rightRectification, rightProjection, imageSize, CV_16SC2, rightMapX, rightMapY);
 
   printf("[DEBUG] Rectifying left camera images\n");
   std::vector<std::string> imagesPathLeft = ImageUtils::getImagesPath(inputPathLeft);
   for (std::string imagePath : imagesPathLeft) {
     cv::Mat leftImage = cv::imread(imagePath, cv::IMREAD_COLOR);
-    cv::Mat leftImageUndistorted = leftImage.clone();
+    cv::Mat leftImageUndistorted;
     cv::remap(leftImage, leftImageUndistorted, leftMapX, leftMapY, cv::INTER_LINEAR);
+
     std::string filename = boost::filesystem::path(imagePath).filename().string();
     cv::imwrite(outputPathLeft + "/" + filename, leftImageUndistorted);
   }
@@ -63,8 +62,9 @@ void StereoMatch::computeRectification() {
   std::vector<std::string> imagesPathRight = ImageUtils::getImagesPath(inputPathRight);
   for (std::string imagePath : imagesPathRight) {
     cv::Mat rightImage = cv::imread(imagePath, cv::IMREAD_COLOR);
-    cv::Mat rightImageUndistorted = rightImage.clone();
+    cv::Mat rightImageUndistorted;
     cv::remap(rightImage, rightImageUndistorted, rightMapX, rightMapY, cv::INTER_LINEAR);
+
     std::string filename = boost::filesystem::path(imagePath).filename().string();
     cv::imwrite(outputPathRight + "/" + filename, rightImageUndistorted);
   }
@@ -89,17 +89,23 @@ void StereoMatch::computeDisparityMaps() {
     cv::Mat rightImage = cv::imread(rightImagePath, cv::IMREAD_ANYCOLOR);
     cv::Mat disparityMap;
 
-    int windowSize = 11;
+    int channels = 3;
+    int windowSize = 5;
     cv::Ptr<cv::StereoSGBM> stereoAlgorithm = cv::StereoSGBM::create();
+    stereoAlgorithm->setMode(cv::StereoSGBM::MODE_HH);
+    stereoAlgorithm->setP1(8 * channels * windowSize * windowSize);
+    stereoAlgorithm->setP2(32 * channels * windowSize * windowSize);
     stereoAlgorithm->setBlockSize(windowSize);
     stereoAlgorithm->setMinDisparity(0);
-    stereoAlgorithm->setNumDisparities(64);
+    stereoAlgorithm->setNumDisparities(32);
+    stereoAlgorithm->setDisp12MaxDiff(1);
+    stereoAlgorithm->setUniquenessRatio(10);
+    stereoAlgorithm->setSpeckleWindowSize(100);
+    stereoAlgorithm->setSpeckleRange(32);
     stereoAlgorithm->compute(leftImage, rightImage, disparityMap);
 
-    cv::Mat floatDisparityMap;
-    float normalizationFactor = disparityMap.type() == CV_16S? 16.0 : 1.0;
-    disparityMap.convertTo(floatDisparityMap, CV_32F, 1.0f / normalizationFactor);
-    cv::imwrite(outputPath + "/" + filename, floatDisparityMap);
+    disparityMap.convertTo(disparityMap, CV_32F, 1.0f / 16.0f);
+    cv::imwrite(outputPath + "/" + filename, disparityMap);
   }
 }
 

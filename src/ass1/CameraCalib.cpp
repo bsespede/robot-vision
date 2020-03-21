@@ -49,14 +49,13 @@ void CameraCalib::computeCornerPoints() {
 
   std::vector<std::string> imagesPath = ImageUtils::getImagesPath(_inputPath);
   for (std::string imagePath : imagesPath) {
-    cv::Mat image = cv::imread(imagePath, cv::IMREAD_COLOR);
+    cv::Mat image = cv::imread(imagePath, cv::IMREAD_GRAYSCALE);
     std::vector<cv::Point2f> curImagePoints;
-    bool foundCorners = cv::findChessboardCorners(image, _patternSize, curImagePoints);
+    int flags = cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE;
+    bool foundCorners = cv::findChessboardCorners(image, _patternSize, curImagePoints, flags);
     if (foundCorners) {
-      cv::Mat imageGray;
-      cvtColor(image, imageGray, cv::COLOR_BGR2GRAY);
-      cornerSubPix(imageGray, curImagePoints, cv::Size(11, 11), cv::Size(-1, -1),
-                   cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.0001));
+      cornerSubPix(image, curImagePoints, cv::Size(11, 11), cv::Size(-1, -1),
+                   cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.01));
       _imagePoints.push_back({curImagePoints, boost::filesystem::path(imagePath).stem().string()});
       _objectPoints.push_back({curObjectPoints});
     }
@@ -83,6 +82,10 @@ CameraCalib::Intrinsics CameraCalib::getIntrinsics() {
     throw std::runtime_error("Calibration has not been computed yet");
   }
   return _intrinsics;
+}
+
+void CameraCalib::setIntrinsics(Intrinsics intrinsics) {
+  _intrinsics = intrinsics;
 }
 
 void CameraCalib::printCalibration() {
