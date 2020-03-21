@@ -4,30 +4,21 @@
 
 #include "ass1/StereoCalib.h"
 
-StereoCalib::StereoCalib(cv::Size patternSize, float squareSize) : _patternSize(patternSize), _squareSize(squareSize),
-_leftCalibration(patternSize, squareSize), _rightCalibration(patternSize, squareSize), _hasCalibrated(false) {}
-
-void StereoCalib::computeCalibration(std::string inputPath) {
+StereoCalib::StereoCalib(std::string inputPath, cv::Size patternSize, float squareSize) : _inputPath(inputPath),
+_patternSize(patternSize), _squareSize(squareSize), _hasCalibrated(false),
+_leftCalibration(inputPath + "/left", patternSize, squareSize),
+_rightCalibration(inputPath + "/right", patternSize, squareSize) {
   if (!boost::filesystem::is_directory(inputPath)) {
     throw std::runtime_error("Input folder does not exist");
   }
+}
 
-  std::string leftImagesPath = inputPath + "/left";
-  std::string rightImagesPath = inputPath + "/right";
-  if (!boost::filesystem::is_directory(leftImagesPath) || !boost::filesystem::is_directory(rightImagesPath)) {
-    throw std::runtime_error("Input folder must contain left and right folders");
-  }
-
-  printf("[DEBUG] Checking for valid pairs\n");
-  if (ImageUtils::getImagesSize(leftImagesPath) != ImageUtils::getImagesSize(rightImagesPath)) {
-    throw std::runtime_error("Image pairs should have the same size");
-  }
-
+void StereoCalib::computeCalibration() {
   printf("[DEBUG] Computing intrinsics for left camera\n");
-  _leftCalibration.computeCalibration(inputPath + "/left");
+  _leftCalibration.computeCalibration();
 
   printf("[DEBUG] Computing intrinsics for right camera\n");
-  _rightCalibration.computeCalibration(inputPath + "/right");
+  _rightCalibration.computeCalibration();
 
   std::vector<std::vector<cv::Point2f>> leftImagePointsUnraveled;
   std::vector<std::vector<cv::Point2f>> rightImagePointsUnraveled;
@@ -35,6 +26,7 @@ void StereoCalib::computeCalibration(std::string inputPath) {
   for (CameraCalib::ImagePoints leftImagePoints: _leftCalibration.getImagePoints()) {
     for (CameraCalib::ImagePoints rightImagePoints: _rightCalibration.getImagePoints()) {
       if (leftImagePoints.filename == rightImagePoints.filename) {
+        printf("%s\n", leftImagePoints.filename.c_str());
         leftImagePointsUnraveled.push_back(leftImagePoints.points);
         rightImagePointsUnraveled.push_back(rightImagePoints.points);
         objectPointsUnraveled.push_back(_leftCalibration.getObjectPoints()[0].points);
@@ -43,12 +35,12 @@ void StereoCalib::computeCalibration(std::string inputPath) {
     }
   }
 
-  printf("[DEBUG] Computing extrinsics\n");
+  printf("[DEBUG] Computing extrinsics between cameras\n");
   cv::Mat leftIntrinsics = _leftCalibration.getIntrinsics().cameraMatrix;
   cv::Mat rightIntrinsics = _rightCalibration.getIntrinsics().cameraMatrix;
   cv::Mat leftDistortions = _leftCalibration.getIntrinsics().distCoeffs;
   cv::Mat rightDistortions = _rightCalibration.getIntrinsics().distCoeffs;
-  cv::Size imageSize = ImageUtils::getImagesSize(leftImagesPath);
+  cv::Size imageSize = _leftCalibration.getIntrinsics().imageSize;
   cv::Mat rotationMatrix;
   cv::Mat translationMatrix;
   cv::Mat essentialMatrix;
@@ -82,4 +74,28 @@ StereoCalib::Extrinsics StereoCalib::getExtrinsics() {
 
 bool StereoCalib::hasCalibrated() {
   return _hasCalibrated;
+}
+
+void StereoCalib::printCalibration() {
+  if (!_hasCalibrated) {
+    throw std::runtime_error("Stereo calibration has not been computed yet");
+  }
+
+  _leftCalibration.printCalibration();
+  _rightCalibration.printCalibration();
+
+  printf("[DEBUG] Extrinsics for \"%s\":\n", _inputPath.c_str());
+  printf("r00: %f\n", _extrinsics.rotationMatrix.at<double>(0, 0));
+  printf("r01: %f\n", _extrinsics.rotationMatrix.at<double>(0, 1));
+  printf("r02: %f\n", _extrinsics.rotationMatrix.at<double>(0, 2));
+  printf("r10: %f\n", _extrinsics.rotationMatrix.at<double>(1, 0));
+  printf("r11: %f\n", _extrinsics.rotationMatrix.at<double>(1, 1));
+  printf("r12: %f\n", _extrinsics.rotationMatrix.at<double>(1, 2));
+  printf("r20: %f\n", _extrinsics.rotationMatrix.at<double>(2, 0));
+  printf("r21: %f\n", _extrinsics.rotationMatrix.at<double>(2, 1));
+  printf("r22: %f\n", _extrinsics.rotationMatrix.at<double>(2, 2));
+  printf("tx: %f\n", _extrinsics.transVector.at<double>(0, 0));
+  printf("ty: %f\n", _extrinsics.transVector.at<double>(0, 1));
+  printf("tz: %f\n", _extrinsics.transVector.at<double>(0, 2));
+  printf("rmse: %f\n", _extrinsics.rmse);
 }

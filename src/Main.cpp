@@ -9,12 +9,15 @@
 int main(int argc, char *argv[])
 {
   std::string calibImagesPath = "../data/CALIB_DATA";
-  StereoCalib calibration(cv::Size(8, 5), 30);
-  calibration.computeCalibration(calibImagesPath);
+  StereoCalib calibration(calibImagesPath, cv::Size(8, 5), 30);
+  calibration.computeCalibration();
+  calibration.printCalibration();
 
   std::string sceneImagesPath = "../data/STEREO_DATA/stereo_data";
-  StereoMatch stereoMatcher(calibration);
-  stereoMatcher.computePointCloud(sceneImagesPath);
+  StereoMatch stereoMatcher(sceneImagesPath, calibration);
+  stereoMatcher.computeRectification();
+  stereoMatcher.computeDisparityMaps();
+  stereoMatcher.computePointClouds();
 
   return 0;
 }

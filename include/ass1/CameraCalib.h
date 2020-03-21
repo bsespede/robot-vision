@@ -28,17 +28,20 @@ class CameraCalib {
     std::vector<cv::Point3f> points;
   };
 
-  CameraCalib(cv::Size patternSize, float squareSize);
-  void computeCalibration(std::string inputPath);
+  CameraCalib(std::string inputPath, cv::Size patternSize, float squareSize);
+  void computeCalibration();
   Intrinsics getIntrinsics();
   std::vector<ImagePoints> getImagePoints();
   std::vector<ObjectPoints> getObjectPoints();
+  void printCalibration();
 
  private:
-  void computeCornerPoints(std::string inputPath);
+  void computeCornerPoints();
+
+  std::string _inputPath;
   cv::Size _patternSize;
   float _squareSize;
-  bool _hasComputedIntrinsics;
+  bool _hasCalibrated;
 
   std::vector<ImagePoints> _imagePoints;
   std::vector<ObjectPoints> _objectPoints;

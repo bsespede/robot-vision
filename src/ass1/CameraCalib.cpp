@@ -4,17 +4,17 @@
 
 #include "ass1/CameraCalib.h"
 
-CameraCalib::CameraCalib(cv::Size patternSize, float squareSize) : _patternSize(patternSize), _squareSize(squareSize),
-_hasComputedIntrinsics(false) {}
-
-void CameraCalib::computeCalibration(std::string inputPath) {
-  if (!boost::filesystem::is_directory(inputPath)) {
+CameraCalib::CameraCalib(std::string inputPath, cv::Size patternSize, float squareSize) : _inputPath(inputPath),
+_patternSize(patternSize), _squareSize(squareSize), _hasCalibrated(false) {
+  if (!boost::filesystem::is_directory(_inputPath)) {
     throw std::runtime_error("Input folder does not exist");
   }
+}
 
+void CameraCalib::computeCalibration() {
   printf("[DEBUG] Computing input and object points\n");
-  computeCornerPoints(inputPath);
-  cv::Size imageSize = ImageUtils::getImagesSize(inputPath);
+  computeCornerPoints();
+  cv::Size imageSize = ImageUtils::getImagesSize(_inputPath);
   std::vector<cv::Mat> rvecs = std::vector<cv::Mat>(_imagePoints.size());
   std::vector<cv::Mat> tvecs = std::vector<cv::Mat>(_imagePoints.size());
   cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
@@ -32,10 +32,10 @@ void CameraCalib::computeCalibration(std::string inputPath) {
       rvecs, tvecs);
 
   _intrinsics = {cameraMatrix, distCoeffs, imageSize, rmse};
-  _hasComputedIntrinsics = true;
+  _hasCalibrated = true;
 }
 
-void CameraCalib::computeCornerPoints(std::string inputPath) {
+void CameraCalib::computeCornerPoints() {
   printf("[DEBUG] Computing corner points\n");
   _imagePoints = std::vector<ImagePoints>();
   _objectPoints = std::vector<ObjectPoints>();
@@ -47,7 +47,7 @@ void CameraCalib::computeCornerPoints(std::string inputPath) {
     }
   }
 
-  std::vector<std::string> imagesPath = ImageUtils::getImagesPath(inputPath);
+  std::vector<std::string> imagesPath = ImageUtils::getImagesPath(_inputPath);
   for (std::string imagePath : imagesPath) {
     cv::Mat image = cv::imread(imagePath, cv::IMREAD_COLOR);
     std::vector<cv::Point2f> curImagePoints;
@@ -65,22 +65,40 @@ void CameraCalib::computeCornerPoints(std::string inputPath) {
 
 
 std::vector<CameraCalib::ImagePoints> CameraCalib::getImagePoints() {
-  if (!_hasComputedIntrinsics) {
+  if (!_hasCalibrated) {
     throw std::runtime_error("Calibration has not been computed yet");
   }
   return _imagePoints;
 }
 
 std::vector<CameraCalib::ObjectPoints> CameraCalib::getObjectPoints() {
-  if (!_hasComputedIntrinsics) {
+  if (!_hasCalibrated) {
     throw std::runtime_error("Calibration has not been computed yet");
   }
   return _objectPoints;
 }
 
 CameraCalib::Intrinsics CameraCalib::getIntrinsics() {
-  if (!_hasComputedIntrinsics) {
+  if (!_hasCalibrated) {
     throw std::runtime_error("Calibration has not been computed yet");
   }
   return _intrinsics;
+}
+
+void CameraCalib::printCalibration() {
+  if (!_hasCalibrated) {
+    throw std::runtime_error("Calibration has not been computed yet");
+  }
+
+  printf("[DEBUG] Intrinsics for \"%s\":\n", _inputPath.c_str());
+  printf("fx: %f\n", _intrinsics.cameraMatrix.at<double>(0, 0));
+  printf("fy: %f\n", _intrinsics.cameraMatrix.at<double>(1, 1));
+  printf("cx: %f\n", _intrinsics.cameraMatrix.at<double>(0, 2));
+  printf("cx: %f\n", _intrinsics.cameraMatrix.at<double>(1, 2));
+  printf("k1: %f\n", _intrinsics.distCoeffs.at<double>(0, 0));
+  printf("k2: %f\n", _intrinsics.distCoeffs.at<double>(1, 0));
+  printf("p1: %f\n", _intrinsics.distCoeffs.at<double>(2, 0));
+  printf("p2: %f\n", _intrinsics.distCoeffs.at<double>(3, 0));
+  printf("k3: %f\n", _intrinsics.distCoeffs.at<double>(4, 0));
+  printf("rmse: %f\n", _intrinsics.rmse);
 }
