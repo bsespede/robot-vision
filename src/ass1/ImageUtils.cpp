@@ -26,7 +26,7 @@ cv::Size ImageUtils::getImagesSize(std::string inputPath) {
 std::vector<std::string> ImageUtils::getImagesPath(std::string inputPath) {
   std::vector<std::string> imagesPath;
   if (boost::filesystem::is_directory(inputPath)) {
-    for (auto& file : boost::filesystem::recursive_directory_iterator(inputPath)) {
+    for (auto& file : boost::filesystem::directory_iterator(inputPath)) {
       if (file.path().extension() == ".png") {
         imagesPath.push_back(file.path().string());
       }

@@ -3,6 +3,9 @@
 //
 
 #include "ass1/StereoCalib.h"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
 
 StereoCalib::StereoCalib(std::string inputPath, cv::Size patternSize, float squareSize) : _inputPath(inputPath),
 _patternSize(patternSize), _squareSize(squareSize), _hasCalibrated(false),
@@ -45,11 +48,9 @@ void StereoCalib::computeCalibration() {
   cv::Mat translationMatrix;
   cv::Mat essentialMatrix;
   cv::Mat fundamentalMatrix;
-  int stereoFlags = cv::CALIB_FIX_ASPECT_RATIO + cv::CALIB_ZERO_TANGENT_DIST + cv::CALIB_USE_INTRINSIC_GUESS +
-      cv::CALIB_SAME_FOCAL_LENGTH + cv::CALIB_RATIONAL_MODEL + cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5;
   float rmse = cv::stereoCalibrate(objectPointsUnraveled, leftImagePointsUnraveled, rightImagePointsUnraveled,
       leftCameraMatrix, leftDistortions, rightCameraMatrix, rightDistortions, imageSize, rotationMatrix,
-      translationMatrix, essentialMatrix, fundamentalMatrix, stereoFlags);
+      translationMatrix, essentialMatrix, fundamentalMatrix);
 
   _leftCalibration.setIntrinsics({leftCameraMatrix, leftDistortions, imageSize, _leftCalibration.getIntrinsics().rmse});
   _rightCalibration.setIntrinsics({rightCameraMatrix, rightDistortions, imageSize, _rightCalibration.getIntrinsics().rmse});

@@ -13,6 +13,8 @@ void StereoMatch::computeRectification() {
     throw std::runtime_error("Calibration has not been computed");
   }
 
+  _calibration.printCalibration();
+
   std::string inputPathLeft = _inputPath + "/left";
   std::string inputPathRight = _inputPath + "/right";
   std::string outputPathLeft = inputPathLeft + "/rectified";
@@ -53,7 +55,6 @@ void StereoMatch::computeRectification() {
     cv::Mat leftImage = cv::imread(imagePath, cv::IMREAD_COLOR);
     cv::Mat leftImageUndistorted;
     cv::remap(leftImage, leftImageUndistorted, leftMapX, leftMapY, cv::INTER_LINEAR);
-
     std::string filename = boost::filesystem::path(imagePath).filename().string();
     cv::imwrite(outputPathLeft + "/" + filename, leftImageUndistorted);
   }
@@ -64,7 +65,6 @@ void StereoMatch::computeRectification() {
     cv::Mat rightImage = cv::imread(imagePath, cv::IMREAD_COLOR);
     cv::Mat rightImageUndistorted;
     cv::remap(rightImage, rightImageUndistorted, rightMapX, rightMapY, cv::INTER_LINEAR);
-
     std::string filename = boost::filesystem::path(imagePath).filename().string();
     cv::imwrite(outputPathRight + "/" + filename, rightImageUndistorted);
   }
@@ -90,15 +90,15 @@ void StereoMatch::computeDisparityMaps() {
     cv::Mat disparityMap;
 
     int channels = 3;
-    int windowSize = 5;
+    int windowSize = 3;
     cv::Ptr<cv::StereoSGBM> stereoAlgorithm = cv::StereoSGBM::create();
     stereoAlgorithm->setMode(cv::StereoSGBM::MODE_HH);
     stereoAlgorithm->setP1(8 * channels * windowSize * windowSize);
     stereoAlgorithm->setP2(32 * channels * windowSize * windowSize);
     stereoAlgorithm->setBlockSize(windowSize);
     stereoAlgorithm->setMinDisparity(0);
-    stereoAlgorithm->setNumDisparities(32);
-    stereoAlgorithm->setDisp12MaxDiff(1);
+    stereoAlgorithm->setNumDisparities(16);
+    stereoAlgorithm->setDisp12MaxDiff(10);
     stereoAlgorithm->setUniquenessRatio(10);
     stereoAlgorithm->setSpeckleWindowSize(100);
     stereoAlgorithm->setSpeckleRange(32);
