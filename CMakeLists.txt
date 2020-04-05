@@ -20,7 +20,7 @@ add_executable(${PROJECT_NAME}
 		"src/ass1/CameraCalib.cpp" "include/ass1/CameraCalib.h"
 		"src/ass1/StereoCalib.cpp" "include/ass1/StereoCalib.h"
 		"src/ass1/StereoMatch.cpp" "include/ass1/StereoMatch.h"
-		"src/ass1/PointCloud.cpp" "include/ass1/PointCloud.h")
+		"src/ass1/PLYFile.cpp" "include/ass1/PLYFile.h")
 
 # Link project with libraries
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${Boost_LIBRARIES})

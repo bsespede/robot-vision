@@ -9,15 +9,14 @@
 #include <iostream>
 #include <fstream>
 
-class PointCloud {
+class PLYFile {
  public:
-  PointCloud(std::string inputPath, std::string filename, cv::Mat projectionMatrix);
-  void computePointCloud();
+  PLYFile(cv::Mat vertexColors, cv::Mat vertexPositions);
+  void write(std::string scenePath, std::string filename);
 
  private:
-  std::string _inputPath;
-  std::string _filename;
-  cv::Mat _projectionMatrix;
+  cv::Mat _vertexColor;
+  cv::Mat _vertexPosition;
 };
 
 #endif //ROBOT_VISION_SRC_ASS1_POINTCLOUD_H_

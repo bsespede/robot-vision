@@ -2,7 +2,7 @@
 // Created by bsespede on 3/15/20.
 //
 
-#include <ass1/PointCloud.h>
+#include <ass1/PLYFile.h>
 #include "ass1/StereoMatch.h"
 
 StereoMatch::StereoMatch(std::string inputPath, StereoCalib calibration) : _inputPath(inputPath),
@@ -70,56 +70,53 @@ void StereoMatch::computeRectification() {
   }
 }
 
-void StereoMatch::computeDisparityMaps() {
+void StereoMatch::computeDepth(bool storeDisparityMap, bool storeCloud) {
   if (!_hasRectified) {
     throw std::runtime_error("Rectification has not been computed");
   }
 
   std::string inputPathLeft = _inputPath + "/left/rectified";
   std::string inputPathRight = _inputPath + "/right/rectified";
-  std::string outputPath = _inputPath + "/disparity";
-  boost::filesystem::create_directories(outputPath);
+  std::string outputPathDisparity = _inputPath + "/disparity";
+  std::string outputPathCloud = _inputPath + "/cloud";
+  boost::filesystem::create_directories(outputPathDisparity);
+  boost::filesystem::create_directories(outputPathCloud);
 
-  printf("[DEBUG] Computing disparity map\n");
   std::vector<std::string> imagesPathLeft = ImageUtils::getImagesPath(inputPathLeft);
   for (std::string leftImagePath : imagesPathLeft) {
-    std::string filename = boost::filesystem::path(leftImagePath).filename().string();
-    std::string rightImagePath = inputPathRight + "/" + filename;
+    printf("[DEBUG] Computing disparity map and point cloud of \"%s\"\n", leftImagePath.c_str());
+    std::string filename = boost::filesystem::path(leftImagePath).stem().string();
+    std::string rightImagePath = inputPathRight + "/" + filename + ".png";
     cv::Mat leftImage = cv::imread(leftImagePath, cv::IMREAD_ANYCOLOR);
     cv::Mat rightImage = cv::imread(rightImagePath, cv::IMREAD_ANYCOLOR);
     cv::Mat disparityMap;
 
     int channels = 3;
     int windowSize = 3;
+    int minDisparity = 0;
+    int maxDisparity = 512;
     cv::Ptr<cv::StereoSGBM> stereoAlgorithm = cv::StereoSGBM::create();
     stereoAlgorithm->setMode(cv::StereoSGBM::MODE_HH);
     stereoAlgorithm->setP1(8 * channels * windowSize * windowSize);
     stereoAlgorithm->setP2(32 * channels * windowSize * windowSize);
     stereoAlgorithm->setBlockSize(windowSize);
-    stereoAlgorithm->setMinDisparity(0);
-    stereoAlgorithm->setNumDisparities(16);
-    stereoAlgorithm->setDisp12MaxDiff(10);
-    stereoAlgorithm->setUniquenessRatio(10);
-    stereoAlgorithm->setSpeckleWindowSize(100);
-    stereoAlgorithm->setSpeckleRange(32);
+    stereoAlgorithm->setMinDisparity(minDisparity);
+    stereoAlgorithm->setNumDisparities(maxDisparity);
     stereoAlgorithm->compute(leftImage, rightImage, disparityMap);
 
-    disparityMap.convertTo(disparityMap, CV_32F, 1.0f / 16.0f);
-    cv::imwrite(outputPath + "/" + filename, disparityMap);
-  }
-}
+    if (storeDisparityMap) {
+      cv::Mat disparityInteger;
+      disparityMap.convertTo(disparityInteger, CV_8U, 255 / ((maxDisparity - minDisparity) * 16.0f));
+      cv::imwrite(outputPathDisparity + "/" + filename + ".png", disparityInteger);
+    }
 
-void StereoMatch::computePointClouds() {
-  if (!_hasRectified) {
-    throw std::runtime_error("Rectification has not been computed");
-  }
-
-  std::string inputImagesPath = _inputPath + "/left";
-  std::string inputDisparityPath = _inputPath + "/disparity";
-  std::vector<std::string> imagesPath = ImageUtils::getImagesPath(inputImagesPath);
-  for (std::string imagePath : imagesPath) {
-    std::string filename = boost::filesystem::path(imagePath).stem().string();
-    PointCloud pointCloud(_inputPath, filename, _projectionMatrix);
-    pointCloud.computePointCloud();
+    if (storeCloud) {
+      cv::Mat disparityFloat;
+      cv::Mat pointCloud;
+      disparityMap.convertTo(disparityFloat, CV_32F, 1.0f / 16.0f);
+      cv::reprojectImageTo3D(disparityFloat, pointCloud, _projectionMatrix);
+      PLYFile pointCloudFile(leftImage, pointCloud);
+      pointCloudFile.write(outputPathCloud, filename);
+    }
   }
 }

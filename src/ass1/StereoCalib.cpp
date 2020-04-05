@@ -29,7 +29,6 @@ void StereoCalib::computeCalibration() {
   for (CameraCalib::ImagePoints leftImagePoints: _leftCalibration.getImagePoints()) {
     for (CameraCalib::ImagePoints rightImagePoints: _rightCalibration.getImagePoints()) {
       if (leftImagePoints.filename == rightImagePoints.filename) {
-        printf("%s\n", leftImagePoints.filename.c_str());
         leftImagePointsUnraveled.push_back(leftImagePoints.points);
         rightImagePointsUnraveled.push_back(rightImagePoints.points);
         objectPointsUnraveled.push_back(_leftCalibration.getObjectPoints()[0].points);

@@ -11,8 +11,7 @@ class StereoMatch {
  public:
   StereoMatch(std::string inputPath, StereoCalib calibration);
   void computeRectification();
-  void computeDisparityMaps();
-  void computePointClouds();
+  void computeDepth(bool storeDisparityMap, bool storeCloud);
 
  private:
   std::string _inputPath;
