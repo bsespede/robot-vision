@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
   StereoCalib calibration(calibImagesPath, cv::Size(8, 5), 30);
   calibration.computeCalibration();
 
-  std::string sceneImagesPath = "../data/STEREO_DATA_ADD/stereo_data_add";
+  std::string sceneImagesPath = "../data/STEREO_DATA/stereo_data";
   StereoMatch stereoMatcher(sceneImagesPath, calibration);
   stereoMatcher.computeRectification();
   stereoMatcher.computeDepth(true, true);

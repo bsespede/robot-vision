@@ -68,6 +68,8 @@ void StereoMatch::computeRectification() {
     std::string filename = boost::filesystem::path(imagePath).filename().string();
     cv::imwrite(outputPathRight + "/" + filename, rightImageUndistorted);
   }
+
+  _hasRectified = true;
 }
 
 void StereoMatch::computeDepth(bool storeDisparityMap, bool storeCloud) {
@@ -92,21 +94,21 @@ void StereoMatch::computeDepth(bool storeDisparityMap, bool storeCloud) {
     cv::Mat disparityMap;
 
     int channels = 3;
-    int windowSize = 3;
+    int windowSize = 5;
     int minDisparity = 0;
-    int maxDisparity = 512;
+    int numDisparities = 512;
     cv::Ptr<cv::StereoSGBM> stereoAlgorithm = cv::StereoSGBM::create();
     stereoAlgorithm->setMode(cv::StereoSGBM::MODE_HH);
     stereoAlgorithm->setP1(8 * channels * windowSize * windowSize);
     stereoAlgorithm->setP2(32 * channels * windowSize * windowSize);
     stereoAlgorithm->setBlockSize(windowSize);
     stereoAlgorithm->setMinDisparity(minDisparity);
-    stereoAlgorithm->setNumDisparities(maxDisparity);
+    stereoAlgorithm->setNumDisparities(numDisparities);
     stereoAlgorithm->compute(leftImage, rightImage, disparityMap);
 
     if (storeDisparityMap) {
       cv::Mat disparityInteger;
-      disparityMap.convertTo(disparityInteger, CV_8U, 255 / ((maxDisparity - minDisparity) * 16.0f));
+      disparityMap.convertTo(disparityInteger, CV_8U, 255 / ((numDisparities - minDisparity) * 16.0f));
       cv::imwrite(outputPathDisparity + "/" + filename + ".png", disparityInteger);
     }
 
